@@ -1,0 +1,45 @@
+# =============================================================================
+# Environment Variables — Stripe Financial Integration
+# =============================================================================
+# Copy this file and populate with real values.
+# NEVER commit actual credentials to version control.
+#
+# In production, these are managed via Docker secrets (see docker-compose.yml).
+# =============================================================================
+
+# --- Database ---
+DB_ROOT_PASSWORD=your_root_password_here
+DB_NAME=wordpress
+DB_USER=wp_user
+DB_PASSWORD=your_db_password_here
+WORDPRESS_DB_HOST=db:3306
+
+# --- Stripe (Payment Processor) ---
+# Get these from https://dashboard.stripe.com/apikeys
+STRIPE_PUBLISHABLE_KEY=pk_test_xxxxxxxxxxxxxxxxxxxx
+STRIPE_SECRET_KEY=sk_test_xxxxxxxxxxxxxxxxxxxx
+STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxxxxxxxxx
+
+# --- Airtable (System of Record / Financial Database) ---
+# Get these from https://airtable.com/account
+AIRTABLE_BASE_ID=appXXXXXXXXXXXXXX
+AIRTABLE_API_KEY=patXXXXXXXXXXXXXX
+AIRTABLE_TRYOUT_TABLE_ID=tblXXXXXXXXXXXXXX
+AIRTABLE_SEASON_TABLE_ID=tblXXXXXXXXXXXXXX
+
+# --- Mailchimp (Email Marketing) ---
+# Get from https://mailchimp.com/account/api/
+MAILCHIMP_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxx-usXX
+
+# --- Google reCAPTCHA (Lead Capture Anti-Spam) ---
+# Get from https://www.google.com/recaptcha/admin
+RECAPTCHA_SITE_KEY=6LeXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+RECAPTCHA_SECRET_KEY=6LeXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+# --- SMTP (Transactional Email via SendGrid) ---
+SMTP_HOST=smtp.sendgrid.net
+SMTP_PORT=587
+SMTP_USER=apikey
+SMTP_PASSWORD=SG.xxxxxxxxxxxxxxxxxxxx
+SMTP_FROM_EMAIL=noreply@yourdomain.com
+SMTP_FROM_NAME=Your Organization

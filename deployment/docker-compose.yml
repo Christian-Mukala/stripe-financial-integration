@@ -1,0 +1,139 @@
+version: '3.8'
+
+# Container orchestration for the payment processing platform
+# All credentials are managed via Docker secrets — no passwords in code
+
+services:
+  db:
+    image: mariadb:latest
+    container_name: newteam-db
+    volumes:
+      - db_data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
+      MYSQL_DATABASE_FILE: /run/secrets/db_name
+      MYSQL_USER_FILE: /run/secrets/db_user
+      MYSQL_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - db_root_password
+      - db_name
+      - db_user
+      - db_password
+    restart: always
+    networks:
+      - wp_network
+
+  wordpress:
+    build: .
+    container_name: newteam-wordpress
+    depends_on:
+      - db
+    ports:
+      - "3000:80"
+    volumes:
+      - ./public_html:/var/www/html
+    environment:
+      # Database
+      WORDPRESS_DB_HOST_FILE: /run/secrets/wordpress_db_host
+      WORDPRESS_DB_USER_FILE: /run/secrets/db_user
+      WORDPRESS_DB_PASSWORD_FILE: /run/secrets/db_password
+      WORDPRESS_DB_NAME_FILE: /run/secrets/db_name
+
+      # Airtable (System of Record)
+      AIRTABLE_BASE_ID_FILE: /run/secrets/airtable_base_id
+      AIRTABLE_API_KEY_FILE: /run/secrets/airtable_api_key
+      AIRTABLE_TRYOUT_TABLE_ID_FILE: /run/secrets/airtable_tryout_table_id
+
+      # Stripe (Payment Processor)
+      STRIPE_PUBLISHABLE_KEY_FILE: /run/secrets/stripe_publishable_key
+      STRIPE_SECRET_KEY_FILE: /run/secrets/stripe_secret_key
+      STRIPE_WEBHOOK_SECRET_FILE: /run/secrets/stripe_webhook_secret
+
+      # Mailchimp (Email Marketing)
+      MAILCHIMP_API_KEY_FILE: /run/secrets/mailchimp_api_key
+
+      # Google reCAPTCHA (Lead Capture Anti-Spam)
+      RECAPTCHA_SITE_KEY_FILE: /run/secrets/recaptcha_site_key
+      RECAPTCHA_SECRET_KEY_FILE: /run/secrets/recaptcha_secret_key
+
+      # SMTP (Transactional Email)
+      SMTP_HOST_FILE: /run/secrets/smtp_host
+      SMTP_PORT_FILE: /run/secrets/smtp_port
+      SMTP_USER_FILE: /run/secrets/smtp_user
+      SMTP_PASSWORD_FILE: /run/secrets/smtp_password
+      SMTP_FROM_EMAIL_FILE: /run/secrets/smtp_from_email
+      SMTP_FROM_NAME_FILE: /run/secrets/smtp_from_name
+    secrets:
+      - wordpress_db_host
+      - db_user
+      - db_password
+      - db_name
+      - airtable_base_id
+      - airtable_api_key
+      - airtable_tryout_table_id
+      - stripe_publishable_key
+      - stripe_secret_key
+      - stripe_webhook_secret
+      - mailchimp_api_key
+      - recaptcha_site_key
+      - recaptcha_secret_key
+      - smtp_host
+      - smtp_port
+      - smtp_user
+      - smtp_password
+      - smtp_from_email
+      - smtp_from_name
+    restart: always
+    networks:
+      - wp_network
+
+# All secrets stored as individual files — never in environment variables or code
+secrets:
+  db_root_password:
+    file: ./secrets/db_root_password.txt
+  db_name:
+    file: ./secrets/db_name.txt
+  db_user:
+    file: ./secrets/db_user.txt
+  db_password:
+    file: ./secrets/db_password.txt
+  wordpress_db_host:
+    file: ./secrets/wordpress_db_host.txt
+  airtable_base_id:
+    file: ./secrets/airtable_base_id.txt
+  airtable_api_key:
+    file: ./secrets/airtable_api_key.txt
+  airtable_tryout_table_id:
+    file: ./secrets/airtable_tryout_table_id.txt
+  stripe_publishable_key:
+    file: ./secrets/stripe_publishable_key.txt
+  stripe_secret_key:
+    file: ./secrets/stripe_secret_key.txt
+  stripe_webhook_secret:
+    file: ./secrets/stripe_webhook_secret.txt
+  mailchimp_api_key:
+    file: ./secrets/mailchimp_api_key.txt
+  recaptcha_site_key:
+    file: ./secrets/recaptcha_site_key.txt
+  recaptcha_secret_key:
+    file: ./secrets/recaptcha_secret_key.txt
+  smtp_host:
+    file: ./secrets/smtp_host.txt
+  smtp_port:
+    file: ./secrets/smtp_port.txt
+  smtp_user:
+    file: ./secrets/smtp_user.txt
+  smtp_password:
+    file: ./secrets/smtp_password.txt
+  smtp_from_email:
+    file: ./secrets/smtp_from_email.txt
+  smtp_from_name:
+    file: ./secrets/smtp_from_name.txt
+
+volumes:
+  db_data:
+    driver: local
+
+networks:
+  wp_network:
+    driver: bridge
