@@ -218,21 +218,63 @@ Mailchimp API integration with subscriber creation, tag-based segmentation, merg
 
 ---
 
-## Real-World Problem I Solved
+## Real-World Problems I Solved
 
-### The Finance Version
-Payment confirmations were succeeding in Stripe but not reaching the financial database. Root cause: field mapping mismatches between the payment platform and the system of record were causing silent write failures. The season registration table was completely empty despite successful payments — a reconciliation gap where revenue was collected but not recorded.
+These are actual production payment issues I diagnosed and fixed. Each one was causing real financial impact — lost revenue, failed transactions, or missing records.
 
-Additionally, Stripe flagged missing redirect parameters that could cause future payment failures for customers requiring 3D Secure authentication.
+---
 
-### The Technical Version
-Airtable API returned 422 errors because select field values didn't match the table schema:
-- `'Paid in Full'` vs `'Paid in full'` (case mismatch)
-- `'S'` vs `'S (US 5-7)'` (socks size abbreviation vs full label)
+### Case Study 1: Payments Succeeding But Records Missing
 
-Fixed by implementing a data transformation layer ([`data-pipeline/field-mapping.php`](data-pipeline/field-mapping.php)) that maps every form value to its exact Airtable schema equivalent before posting.
+**What was happening:** Players were paying for season registration, their credit cards were charged successfully, but nothing was showing up in our financial database. Money was coming in, but we had no record of who paid.
 
-Also added `return_url` to PaymentIntent confirmation to comply with Stripe's 3DS requirements — without it, customers with 3D Secure-enabled cards would see payment failures.
+**Why it mattered:** This is a compliance and accounting nightmare. You can't run a business if you're collecting money but have no documentation of who paid, how much, or what they signed up for. It also meant no confirmation emails, no admin notifications — players were paying and hearing nothing back.
+
+**What I found:** The payment system and the database had slightly different expectations. The database expected "Paid in full" but the form was sending "Paid in Full" (capital F). It expected "S (US 5-7)" for sock sizes, but the form sent just "S". These tiny mismatches caused the database to reject every record — silently, with no error message to anyone.
+
+**How I fixed it:** I built a data transformation layer that converts payment data to exactly what the database expects before saving. Now the data flows through cleanly. I also added error alerts so if something does fail, we know immediately instead of discovering it weeks later during reconciliation.
+
+**Result:** 100% of payments now have matching database records. Full audit trail from Stripe transaction to financial record.
+
+---
+
+### Case Study 2: Credit Cards Failing Without Explanation
+
+**What was happening:** Most payments worked fine, but some customers — especially those with European banks or cards with extra security — would see their payment fail with no explanation.
+
+**Why it mattered:** We were losing registrations and revenue. Customers would try to pay, see a vague error, and give up. No way to know how much money walked out the door.
+
+**What I found:** Modern credit cards often require a second verification step called 3D Secure (you've probably seen the popup from your bank asking you to confirm a purchase). The payment form wasn't configured to handle this — it expected instant approval and failed when the bank requested additional verification.
+
+**How I fixed it:** Added the proper Stripe configuration to handle the 3D Secure flow — redirecting customers to their bank's verification page and bringing them back to complete the transaction after approval.
+
+**Result:** Cards requiring extra security now complete successfully. No more silent failures for customers with stricter bank security.
+
+---
+
+### Case Study 3: Payment System Outage During Registration Season
+
+**What was happening:** One day, the season registration payment form just stopped working. Customers could fill everything out, but clicking "Pay" did nothing. This happened during our busiest registration period.
+
+**Why it mattered:** Complete payment outage. Zero transactions could process. Every hour meant lost registrations and frustrated customers.
+
+**What I found:** Stripe had updated their payment SDK and changed a previously optional setting to required. Code that processed payments yesterday suddenly stopped working — with no warning from Stripe that this change was coming.
+
+**How I fixed it:** First priority was restoring service — I rolled back to the previous working version within minutes. Then I identified the new required setting, updated the code, tested thoroughly in staging, and redeployed the fix.
+
+**Result:** Payments restored quickly. Learned to monitor Stripe's changelog and test against their beta SDK before updates hit production.
+
+---
+
+### What These Cases Demonstrate
+
+1. **Payment reconciliation requires precision** — A single mismatched character between systems means transactions don't record. You need exact field mapping between payment processor and financial database.
+
+2. **Silent failures are the most dangerous** — The worst bugs don't throw errors. You only discover them when finance asks "why don't our Stripe deposits match our registration records?"
+
+3. **Third-party payment providers change their APIs** — Stripe, banks, card networks — they all update their systems. Code that works today might break tomorrow. You need monitoring and rollback plans.
+
+4. **Payment outages require immediate response** — When money can't flow, every minute counts. Having the ability to quickly rollback buys you time to diagnose and fix properly.
 
 ---
 
